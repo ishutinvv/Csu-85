@@ -249,8 +249,44 @@ dyld_lazy_dylib_stub_binding_helper:
 
 #endif /* __arm__ */
 
+#if __arm64__
+	.text
+	.align 2
+    .globl dyld_lazy_dylib_stub_binding_helper
+    .private_extern dyld_lazy_dylib_stub_binding_helper
+dyld_lazy_dylib_stub_binding_helper:
+	stp		fp, lr, [sp, #-16]!
+	mov		fp, sp
+	sub		sp, sp, #240
+	stp		x0,x1, [fp, #-16]	; x0-x7 are int parameter registers
+	stp		x2,x3, [fp, #-32]
+	stp		x4,x5, [fp, #-48]
+	stp		x6,x7, [fp, #-64]
+	stp		x8,x9, [fp, #-80]	; x8 is used for struct returns
+	stp		q0,q1, [fp, #-128]	; q0-q7 are vector/fp parameter registers
+	stp		q2,q3, [fp, #-160]
+	stp		q4,q5, [fp, #-192]
+	stp		q6,q7, [fp, #-224]
 
+	mov		x0, x16
+	bl		_lazy_load_dylib
+	mov		x16, x0			; save target function address in lr
 
+	; restore parameter registers
+	ldp		x0,x1, [fp, #-16]
+	ldp		x2,x3, [fp, #-32]
+	ldp		x4,x5, [fp, #-48]
+	ldp		x6,x7, [fp, #-64]
+	ldp		x8,x9, [fp, #-80]
+	ldp		q0,q1, [fp, #-128]
+	ldp		q2,q3, [fp, #-160]
+	ldp		q4,q5, [fp, #-192]
+	ldp		q6,q7, [fp, #-224]
+
+	mov		sp, fp
+	ldp		fp, lr, [sp], #16
+	br		x16
+#endif
 
 // This code has be written to allow dead code stripping
 	.subsections_via_symbols
